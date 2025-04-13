@@ -1,0 +1,50 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Run Tests
+      run: npm test
+
+    - name: Build Docker Image
+      run: |
+        docker build -t webapp-ci-cd .
+
+    - name: Deploy (Mock)
+      run: echo "Deploying App..."
+
+    - name: Notify Success (Google Chat/MS Teams)
+      run: curl -X POST -H 'Content-Type: application/json' \
+           -d '{"text":"✅ CI/CD Pipeline succeeded."}' ${{ secrets.CHAT_WEBHOOK }}
+
+    - name: Send Email on Failure
+      if: failure()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.GMAIL_USER }}
+        password: ${{ secrets.GMAIL_PASS }}
+        subject: '❌ Build Failed'
+        to: your-email@example.com
+        from: ${{ secrets.GMAIL_USER }}
+        body: 'Check the pipeline logs for failure reasons.'
